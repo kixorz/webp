@@ -8,6 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <webp/decode.h>
+#include <webp/mux.h>
+#include <webp/mux_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,6 +84,12 @@ uint8_t* webpDelXMP(const uint8_t* data, size_t data_size, size_t* new_data_size
 
 void* webpMalloc(size_t size);
 void webpFree(void* p);
+
+WebPMux* webpAnimCreate();
+WebPMuxError webpAnimPushFrame(WebPMux* mux, const WebPMuxFrameInfo* frame, int copy_data);
+WebPMuxError webpAnimSetAnimationParams(WebPMux* mux, const WebPMuxAnimParams* params);
+WebPMuxError webpAnimAssemble(WebPMux* mux, WebPData* assembled_data);
+void webpAnimDelete(WebPMux* mux);
 
 #ifdef __cplusplus
 }

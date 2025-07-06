@@ -24,6 +24,13 @@ type (
 	C_int16_t C.int16_t
 	C_int32_t C.int32_t
 	C_int64_t C.int64_t
+
+	C_WebPMux           C.WebPMux
+	C_WebPMuxFrameInfo  C.WebPMuxFrameInfo
+	C_WebPMuxAnimParams C.WebPMuxAnimParams
+	C_WebPData          C.WebPData
+	C_WebPMuxError      C.WebPMuxError
+	C_WebPChunkId       C.WebPChunkId
 )
 
 func C_webpGetInfo(
@@ -193,4 +200,34 @@ func C_webpMalloc(size C_size_t) unsafe.Pointer {
 
 func C_webpFree(p unsafe.Pointer) {
 	C.webpFree(p)
+}
+
+func C_webpAnimCreate() *C_WebPMux {
+	return (*C_WebPMux)(C.webpAnimCreate())
+}
+
+func C_webpAnimPushFrame(mux *C_WebPMux, frame *C_WebPMuxFrameInfo, copy_data C_int) C_WebPMuxError {
+	return (C_WebPMuxError)(C.webpAnimPushFrame(
+		(*C.WebPMux)(mux),
+		(*C.WebPMuxFrameInfo)(frame),
+		(C.int)(copy_data),
+	))
+}
+
+func C_webpAnimSetAnimationParams(mux *C_WebPMux, params *C_WebPMuxAnimParams) C_WebPMuxError {
+	return (C_WebPMuxError)(C.webpAnimSetAnimationParams(
+		(*C.WebPMux)(mux),
+		(*C.WebPMuxAnimParams)(params),
+	))
+}
+
+func C_webpAnimAssemble(mux *C_WebPMux, assembled_data *C_WebPData) C_WebPMuxError {
+	return (C_WebPMuxError)(C.webpAnimAssemble(
+		(*C.WebPMux)(mux),
+		(*C.WebPData)(assembled_data),
+	))
+}
+
+func C_webpAnimDelete(mux *C_WebPMux) {
+	C.webpAnimDelete((*C.WebPMux)(mux))
 }

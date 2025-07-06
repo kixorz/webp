@@ -441,3 +441,23 @@ void* webpMalloc(size_t size) {
 void webpFree(void* p) {
 	free(p);
 }
+
+WebPMux* webpAnimCreate() {
+	return WebPMuxNew();
+}
+
+WebPMuxError webpAnimPushFrame(WebPMux* mux, const WebPMuxFrameInfo* frame, int copy_data) {
+	return WebPMuxPushFrame(mux, frame, copy_data);
+}
+
+WebPMuxError webpAnimSetAnimationParams(WebPMux* mux, const WebPMuxAnimParams* params) {
+	return WebPMuxSetAnimationParams(mux, params);
+}
+
+WebPMuxError webpAnimAssemble(WebPMux* mux, WebPData* assembled_data) {
+	return WebPMuxAssemble(mux, assembled_data);
+}
+
+void webpAnimDelete(WebPMux* mux) {
+	WebPMuxDelete(mux);
+}

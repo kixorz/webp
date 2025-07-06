@@ -538,31 +538,57 @@ func webpDelXMP(data []byte) (newData []byte, err error) {
 	return
 }
 
+// Go wrapper types for C types used in animation
+
+// WebPMux is a Go wrapper for C.WebPMux
+type WebPMux struct {
+	mux *C.WebPMux
+}
+
+// WebPData is a Go wrapper for C.WebPData
+type WebPData struct {
+	data C.WebPData
+}
+
+// WebPMuxFrameInfo is a Go wrapper for C.WebPMuxFrameInfo
+type WebPMuxFrameInfo struct {
+	info  C.WebPMuxFrameInfo
+	cData unsafe.Pointer // Keep reference to prevent GC
+}
+
+// WebPMuxAnimParams is a Go wrapper for C.WebPMuxAnimParams
+type WebPMuxAnimParams struct {
+	params C.WebPMuxAnimParams
+}
+
 // Animation-related wrapper functions
 
 // webpAnimCreate creates a new WebPMux for animation.
-func webpAnimCreate() *C.WebPMux {
-	return C.webpAnimCreate()
+func webpAnimCreate() *WebPMux {
+	return &WebPMux{mux: C.webpAnimCreate()}
 }
 
 // webpAnimDelete deletes a WebPMux.
-func webpAnimDelete(mux *C.WebPMux) {
-	C.webpAnimDelete(mux)
+func webpAnimDelete(mux *WebPMux) {
+	if mux != nil && mux.mux != nil {
+		C.webpAnimDelete(mux.mux)
+		mux.mux = nil
+	}
 }
 
 // webpAnimPushFrame adds a frame to a WebPMux.
-func webpAnimPushFrame(mux *C.WebPMux, frameInfo *C.WebPMuxFrameInfo, copy int) int {
-	return int(C.webpAnimPushFrame(mux, frameInfo, C.int(copy)))
+func webpAnimPushFrame(mux *WebPMux, frameInfo *WebPMuxFrameInfo, copy int) int {
+	return int(C.webpAnimPushFrame(mux.mux, &frameInfo.info, C.int(copy)))
 }
 
 // webpAnimSetAnimationParams sets animation parameters for a WebPMux.
-func webpAnimSetAnimationParams(mux *C.WebPMux, params *C.WebPMuxAnimParams) int {
-	return int(C.webpAnimSetAnimationParams(mux, params))
+func webpAnimSetAnimationParams(mux *WebPMux, params *WebPMuxAnimParams) int {
+	return int(C.webpAnimSetAnimationParams(mux.mux, &params.params))
 }
 
 // webpAnimAssemble assembles an animation from a WebPMux.
-func webpAnimAssemble(mux *C.WebPMux, webpData *C.WebPData) int {
-	return int(C.webpAnimAssemble(mux, webpData))
+func webpAnimAssemble(mux *WebPMux, webpData *WebPData) int {
+	return int(C.webpAnimAssemble(mux.mux, &webpData.data))
 }
 
 // webpMuxAnimDispose converts a dispose mode to a WebPMuxAnimDispose.
@@ -576,39 +602,40 @@ func webpMuxAnimBlend(blendMode int) C.WebPMuxAnimBlend {
 }
 
 // webpDataCreate creates a WebPData structure from a byte slice.
-func webpDataCreate(data []byte) (C.WebPData, unsafe.Pointer) {
-	var webpData C.WebPData
+func webpDataCreate(data []byte) (WebPData, unsafe.Pointer) {
+	var webpData WebPData
 	cData := C.CBytes(data)
-	webpData.bytes = (*C.uint8_t)(cData)
-	webpData.size = C.size_t(len(data))
+	webpData.data.bytes = (*C.uint8_t)(cData)
+	webpData.data.size = C.size_t(len(data))
 	return webpData, cData
 }
 
 // webpDataToBytes converts a WebPData to a Go byte slice.
-func webpDataToBytes(webpData C.WebPData) []byte {
-	return unsafe.Slice((*byte)(unsafe.Pointer(webpData.bytes)), int(webpData.size))
+func webpDataToBytes(webpData WebPData) []byte {
+	return unsafe.Slice((*byte)(unsafe.Pointer(webpData.data.bytes)), int(webpData.data.size))
 }
 
 // webpMuxFrameInfoCreate creates a WebPMuxFrameInfo structure.
-func webpMuxFrameInfoCreate(data []byte, x, y, duration, disposeMode, blendMode int) (C.WebPMuxFrameInfo, unsafe.Pointer) {
+func webpMuxFrameInfoCreate(data []byte, x, y, duration, disposeMode, blendMode int) (WebPMuxFrameInfo, unsafe.Pointer) {
 	webpData, cData := webpDataCreate(data)
 
-	frameInfo := C.WebPMuxFrameInfo{}
-	frameInfo.bitstream = webpData
-	frameInfo.x_offset = C.int(x)
-	frameInfo.y_offset = C.int(y)
-	frameInfo.duration = C.int(duration)
-	frameInfo.id = C.WEBP_CHUNK_ANMF
-	frameInfo.dispose_method = webpMuxAnimDispose(disposeMode)
-	frameInfo.blend_method = webpMuxAnimBlend(blendMode)
+	var frameInfo WebPMuxFrameInfo
+	frameInfo.info.bitstream = webpData.data
+	frameInfo.info.x_offset = C.int(x)
+	frameInfo.info.y_offset = C.int(y)
+	frameInfo.info.duration = C.int(duration)
+	frameInfo.info.id = C.WEBP_CHUNK_ANMF
+	frameInfo.info.dispose_method = webpMuxAnimDispose(disposeMode)
+	frameInfo.info.blend_method = webpMuxAnimBlend(blendMode)
+	frameInfo.cData = cData
 
 	return frameInfo, cData
 }
 
 // webpMuxAnimParamsCreate creates a WebPMuxAnimParams structure.
-func webpMuxAnimParamsCreate(backgroundColor uint32, loopCount int) C.WebPMuxAnimParams {
-	animParams := C.WebPMuxAnimParams{}
-	animParams.bgcolor = C.uint32_t(backgroundColor)
-	animParams.loop_count = C.int(loopCount)
+func webpMuxAnimParamsCreate(backgroundColor uint32, loopCount int) WebPMuxAnimParams {
+	var animParams WebPMuxAnimParams
+	animParams.params.bgcolor = C.uint32_t(backgroundColor)
+	animParams.params.loop_count = C.int(loopCount)
 	return animParams
 }

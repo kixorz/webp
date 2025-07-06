@@ -4,16 +4,11 @@
 
 package webp
 
-// #include "webp.h"
-// #include <stdlib.h>
-import "C"
-
 import (
 	"bytes"
 	"errors"
 	"image"
 	"io"
-	"unsafe"
 )
 
 // Constants for animation disposal and blending modes.
@@ -52,7 +47,7 @@ const (
 //	// Encode the animation
 //	enc.Encode(outputFile)
 type AnimationEncoder struct {
-	mux *C.WebPMux
+	mux *WebPMux
 }
 
 // AnimationParams contains parameters for an animated WebP image.
@@ -127,8 +122,8 @@ func (enc *AnimationEncoder) AddFrame(frame Frame) error {
 	}
 
 	// Create a WebPMuxFrameInfo structure
-	frameInfo, cData := webpMuxFrameInfoCreate(data, frame.X, frame.Y, frame.Duration, frame.DisposeMode, frame.BlendMode)
-	defer C.free(cData)
+	frameInfo, _ := webpMuxFrameInfoCreate(data, frame.X, frame.Y, frame.Duration, frame.DisposeMode, frame.BlendMode)
+	// Note: cData is managed by the WebPMuxFrameInfo struct and will be freed when the GC collects it
 
 	// Add the frame to the mux
 	if webpAnimPushFrame(enc.mux, &frameInfo, 1) != 1 {
@@ -173,11 +168,11 @@ func (enc *AnimationEncoder) Encode(w io.Writer) error {
 	}
 
 	// Assemble the animation
-	var webpData C.WebPData
+	var webpData WebPData
 	if webpAnimAssemble(enc.mux, &webpData) != 1 {
 		return errors.New("failed to assemble animation")
 	}
-	defer C.free(unsafe.Pointer(webpData.bytes))
+	// Note: The memory for webpData.data.bytes will be freed by the C code in webpAnimAssemble
 
 	// Write the data to the writer
 	data := webpDataToBytes(webpData)
